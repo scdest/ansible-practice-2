@@ -1,0 +1,29 @@
+  - name: Install MySQL, PyMySql, pip
+    apt:
+      name: [ "mysql-server", "python3-pymysql", "python3-pip", "libmysqlclient-dev", "python3-dev"]
+      state: latest
+      update_cache: true
+
+  - name: Install mysqlclient
+    pip:
+      name: mysqlclient
+
+  - name: Copy mysqld config
+    template:
+      src: mysqld.cnf.j2
+      dest: /etc/mysql/mysql.conf.d/mysqld.cnf
+
+  - name: restart mysql
+    service:
+      name: mysql
+      state: restarted
+      enabled: yes
+
+  - name: create mysql user
+    mysql_user:
+      name: "{{ mysql_user }}"
+      password: "{{ mysql_password }}"
+      priv: '*.*:ALL'
+      host: '%'
+      state: present
+      login_unix_socket: /var/run/mysqld/mysqld.sock

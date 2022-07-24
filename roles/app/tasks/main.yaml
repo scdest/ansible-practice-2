@@ -1,0 +1,22 @@
+  - name: Install apache, php
+    apt:
+      name: "{{ item }}"
+      update_cache: yes
+      state: latest
+    with_items: 
+      - "apache2"
+      - "php"
+      - "php-mysql"
+      - "libapache2-mod-php"
+
+  - name: Install PHP extensions
+    apt:
+      name: [ "php-curl", "php-gd", "php-mbstring", "php-xml", "php-xmlrpc", "php-soap", "php-intl", "php-zip" ]
+      state: latest
+      update_cache: yes
+
+  - name: start and enable apache2
+    service:
+      name: apache2
+      state: started
+      enabled: yes

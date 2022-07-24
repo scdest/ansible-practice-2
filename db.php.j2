@@ -1,0 +1,12 @@
+<?php
+session_start();
+
+$conn = mysqli_connect(
+  '{{ mysql_host }}',
+  '{{ mysql_user }}',
+  '{{ mysql_password }}',
+  'php_mysql_crud'
+) or die(mysqli_error($mysqli));
+
+?>
+Footer

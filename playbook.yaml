@@ -1,0 +1,75 @@
+---
+- name: install git
+  hosts: all
+  become: yes
+  tasks:
+    - name: install git
+      apt:
+        name: git
+        state: present
+
+- name: configure mysql
+  hosts: db
+  become: yes
+  vars_files:
+    - group_vars/db.yaml
+  roles:
+    - db
+  tasks:
+    - name: Collect info about databases
+      mysql_info:
+        login_user: "{{ mysql_user }}"
+        login_password: "{{ mysql_password }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        filter:
+        - databases
+      register: dbdata
+    - name: set_fact when database exists
+      set_fact:
+        database_exists: true
+      loop: "{{ lookup('ansible.builtin.dict', dbdata.databases) }}"
+      when: "mysql_db_name in item.key"
+    - name: clone repo
+      git:
+        repo: https://github.com/FaztWeb/php-mysql-crud.git
+        dest: /tmp/app_files
+        clone: yes
+        force: yes
+      when: "database_exists is not defined"
+    - name: import database script
+      mysql_db:
+        name: all
+        state: import
+        target: /tmp/app_files/database/script.sql
+        login_user: "{{ mysql_user }}"
+        login_password: "{{ mysql_password }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+      when: "database_exists is not defined"
+    - name: Delete content & directory
+      file:
+        state: absent
+        path: /tmp/app_files/
+      when: "database_exists is not defined"
+
+- name: configure lamp for app
+  hosts: app
+  become: yes
+  vars_files:
+    - group_vars/app.yaml
+  roles:
+    - app
+  tasks:
+    - name: remove default index.html
+      file:
+        path: /var/www/html/index.html
+        state: absent
+    - name: clone repo
+      git:
+        repo: https://github.com/FaztWeb/php-mysql-crud.git
+        dest: /var/www/html
+        clone: yes
+        force: yes
+    - name: replace db.php config
+      template:
+        src: "./db.php.j2"
+        dest: "/var/www/html/db.php"
